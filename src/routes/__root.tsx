@@ -76,10 +76,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "Silent Rise. An aligned circle of individuals. Allocation by invitation." },
       { name: "author", content: "Silent Rise" },
       { property: "og:title", content: "Silent Rise — An Aligned Circle" },
-      { property: "og:description", content: "Allocation by invitation. The architecture of restraint." },
+      { property: "og:description", content: "Silent Rise. An aligned circle of individuals. Allocation by invitation." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Silent Rise — An Aligned Circle" },
+      { name: "twitter:description", content: "Silent Rise. An aligned circle of individuals. Allocation by invitation." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/03c3cd4f-a31a-41bd-a232-4eabb079a918" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/03c3cd4f-a31a-41bd-a232-4eabb079a918" },
     ],
     links: [
       {
