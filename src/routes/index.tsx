@@ -367,18 +367,14 @@ function SpecsSection() {
             No detail is incidental. Each component is selected with the intention of permanence.
           </p>
 
-          <button
-            onClick={() =>
-              onReserve({
-                name: "The Navy Polo",
-                color: "Deep Cruise Navy",
-                image: productNavy,
-              })
-            }
-            className="btn-luxe btn-solid mt-14"
+          <a
+            href="https://silent-rise-2.myshopify.com/collections/all"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxe btn-solid mt-14 inline-block"
           >
             Request Allocation
-          </button>
+          </a>
         </div>
 
         <dl className="divide-y divide-border/60">
