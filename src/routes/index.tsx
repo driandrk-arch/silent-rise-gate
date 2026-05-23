@@ -50,7 +50,7 @@ function SilentRisePage() {
           <Header />
           <ProductShowcase onReserve={setReserve} />
           <BentoGrid />
-          <SpecsSection onReserve={setReserve} />
+          <SpecsSection />
           <Footer />
         </main>
       )}
@@ -167,6 +167,17 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
           </p>
         </div>
 
+        <div className="mt-14 flex justify-center">
+          <a
+            href="https://silent-rise-2.myshopify.com/collections/all"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxe btn-solid"
+          >
+            Vásárlás
+          </a>
+        </div>
+
         <div className="mt-32 grid gap-24 lg:grid-cols-2 lg:gap-16">
           <ProductCard
             number="I"
@@ -175,7 +186,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
             fit="Slim · Tailored"
             embroidery="Tonal Cloud Dancer SR Monogram, 3D Puff"
             image={productNavy}
-            onReserve={onReserve}
+            url="https://silent-rise-2.myshopify.com/products/mens-dress-wear-example-product-3"
           />
           <ProductCard
             number="II"
@@ -184,7 +195,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
             fit="Italian Placket · Tailored Sleeve"
             embroidery="Sand 3D Puff Monogram, Discrete"
             image={productEmerald}
-            onReserve={onReserve}
+            url="https://silent-rise-2.myshopify.com/products/short-t-shirt"
           />
         </div>
       </div>
@@ -193,7 +204,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
 }
 
 function ProductCard({
-  number, name, color, fit, embroidery, image, onReserve,
+  number, name, color, fit, embroidery, image, url,
 }: {
   number: string;
   name: string;
@@ -201,7 +212,7 @@ function ProductCard({
   fit: string;
   embroidery: string;
   image: string;
-  onReserve: (p: ReserveTarget) => void;
+  url: string;
 }) {
   return (
     <article className="group flex flex-col">
@@ -234,12 +245,14 @@ function ProductCard({
           <SpecRow k="Allocation" v="08 of 60 remaining" gold />
         </dl>
 
-        <button
-          onClick={() => onReserve({ name, color, image })}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
           className="btn-luxe mt-4 self-start"
         >
           Reserve Piece
-        </button>
+        </a>
       </div>
     </article>
   );
@@ -328,7 +341,7 @@ function BentoCard({
 }
 
 /* ---------- Specs ---------- */
-function SpecsSection({ onReserve }: { onReserve: (p: ReserveTarget) => void }) {
+function SpecsSection() {
   const specs = [
     ["Material", "Organic Supima Cotton, 215 GSM"],
     ["Knit", "Heavy-weight piqué, diamond waffle"],
@@ -354,18 +367,14 @@ function SpecsSection({ onReserve }: { onReserve: (p: ReserveTarget) => void }) 
             No detail is incidental. Each component is selected with the intention of permanence.
           </p>
 
-          <button
-            onClick={() =>
-              onReserve({
-                name: "The Navy Polo",
-                color: "Deep Cruise Navy",
-                image: productNavy,
-              })
-            }
-            className="btn-luxe btn-solid mt-14"
+          <a
+            href="https://silent-rise-2.myshopify.com/collections/all"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxe btn-solid mt-14 inline-block"
           >
             Request Allocation
-          </button>
+          </a>
         </div>
 
         <dl className="divide-y divide-border/60">
