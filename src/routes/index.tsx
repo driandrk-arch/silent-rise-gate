@@ -341,7 +341,7 @@ function BentoCard({
 }
 
 /* ---------- Specs ---------- */
-function SpecsSection({ onReserve }: { onReserve: (p: ReserveTarget) => void }) {
+function SpecsSection() {
   const specs = [
     ["Material", "Organic Supima Cotton, 215 GSM"],
     ["Knit", "Heavy-weight piqué, diamond waffle"],
