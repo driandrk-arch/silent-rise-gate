@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import heroSilhouette from "@/assets/hero-silhouette.jpg";
 import productNavy from "@/assets/product-navy.jpg";
 import productEmerald from "@/assets/product-emerald.jpg";
