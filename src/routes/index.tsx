@@ -245,12 +245,14 @@ function ProductCard({
           <SpecRow k="Allocation" v="08 of 60 remaining" gold />
         </dl>
 
-        <button
-          onClick={() => onReserve({ name, color, image })}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
           className="btn-luxe mt-4 self-start"
         >
           Reserve Piece
-        </button>
+        </a>
       </div>
     </article>
   );
