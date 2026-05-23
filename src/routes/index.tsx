@@ -50,7 +50,7 @@ function SilentRisePage() {
           <Header />
           <ProductShowcase onReserve={setReserve} />
           <BentoGrid />
-          <SpecsSection onReserve={setReserve} />
+          <SpecsSection />
           <Footer />
         </main>
       )}
