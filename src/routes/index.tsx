@@ -167,6 +167,17 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
           </p>
         </div>
 
+        <div className="mt-14 flex justify-center">
+          <a
+            href="https://silent-rise-2.myshopify.com/collections/all"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxe btn-solid"
+          >
+            Vásárlás
+          </a>
+        </div>
+
         <div className="mt-32 grid gap-24 lg:grid-cols-2 lg:gap-16">
           <ProductCard
             number="I"
@@ -175,7 +186,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
             fit="Slim · Tailored"
             embroidery="Tonal Cloud Dancer SR Monogram, 3D Puff"
             image={productNavy}
-            onReserve={onReserve}
+            url="https://silent-rise-2.myshopify.com/products/mens-dress-wear-example-product-3"
           />
           <ProductCard
             number="II"
@@ -184,7 +195,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
             fit="Italian Placket · Tailored Sleeve"
             embroidery="Sand 3D Puff Monogram, Discrete"
             image={productEmerald}
-            onReserve={onReserve}
+            url="https://silent-rise-2.myshopify.com/products/short-t-shirt"
           />
         </div>
       </div>
@@ -193,7 +204,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
 }
 
 function ProductCard({
-  number, name, color, fit, embroidery, image, onReserve,
+  number, name, color, fit, embroidery, image, url,
 }: {
   number: string;
   name: string;
@@ -201,7 +212,7 @@ function ProductCard({
   fit: string;
   embroidery: string;
   image: string;
-  onReserve: (p: ReserveTarget) => void;
+  url: string;
 }) {
   return (
     <article className="group flex flex-col">
