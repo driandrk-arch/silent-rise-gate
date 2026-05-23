@@ -169,6 +169,20 @@
     color: var(--gold);
     letter-spacing: 0.36em;
   }
+  .btn-luxe:focus-visible {
+    outline: none;
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 0 2px var(--obsidian),
+                0 0 0 3px var(--gold),
+                0 0 24px color-mix(in oklch, var(--gold) 22%, transparent);
+  }
+
+  .focus-luxe:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--obsidian),
+                0 0 0 3px var(--gold);
+  }
 
   .btn-solid {
     background-color: var(--ivory);

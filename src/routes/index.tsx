@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import heroSilhouette from "@/assets/hero-silhouette.jpg";
 import productNavy from "@/assets/product-navy.jpg";
 import productEmerald from "@/assets/product-emerald.jpg";
@@ -410,15 +410,72 @@ function ReserveOverlay({
   onClose: () => void;
 }) {
   const sizes = ["S", "M", "L", "XL", "XXL"];
+  const panelRef = useRef<HTMLElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    // Focus the close button on open
+    closeBtnRef.current?.focus();
+
+    const getFocusable = () => {
+      const panel = panelRef.current;
+      if (!panel) return [] as HTMLElement[];
+      return Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute("aria-hidden"));
+    };
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key === "Tab") {
+        const focusable = getFocusable();
+        if (focusable.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        if (e.shiftKey) {
+          if (active === first || !panelRef.current?.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      previouslyFocused.current?.focus?.();
+    };
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-labelledby="reserve-title">
       <button
         onClick={onClose}
-        aria-label="Close"
+        aria-label="Close reservation"
+        tabIndex={-1}
         className="absolute inset-0 bg-obsidian/70 backdrop-blur-sm"
         style={{ animation: "fadeIn 400ms ease-out both" }}
       />
       <aside
+        ref={panelRef}
         className="relative z-10 flex h-full w-full max-w-md flex-col bg-card text-foreground"
         style={{ animation: "slideIn 600ms cubic-bezier(0.16,1,0.3,1) both" }}
       >
@@ -427,8 +484,10 @@ function ReserveOverlay({
         <div className="flex items-center justify-between border-b border-border/60 px-8 py-6">
           <p className="text-[0.65rem] tracking-brand text-accent uppercase">Reservation</p>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
-            className="text-[0.65rem] tracking-brand text-foreground/60 uppercase hover:text-accent"
+            aria-label="Close reservation (Esc)"
+            className="focus-luxe rounded-sm px-1 text-[0.65rem] tracking-brand text-foreground/60 uppercase transition-colors hover:text-accent"
           >
             Close
           </button>
@@ -437,19 +496,21 @@ function ReserveOverlay({
         <div className="flex-1 overflow-y-auto px-8 py-10">
           <img src={product.image} alt={product.name} className="aspect-[4/5] w-full object-cover" />
           <div className="mt-8">
-            <h3 className="font-serif text-2xl font-light" style={{ letterSpacing: "0.04em" }}>{product.name}</h3>
+            <h3 id="reserve-title" className="font-serif text-2xl font-light" style={{ letterSpacing: "0.04em" }}>{product.name}</h3>
             <p className="mt-2 text-[0.7rem] tracking-wider-2 text-foreground/55 uppercase">{product.color}</p>
             <p className="mt-6 text-[0.7rem] tracking-brand text-accent uppercase">€ 480 · Numbered Piece</p>
           </div>
 
           <div className="mt-10">
-            <p className="text-[0.65rem] tracking-brand text-foreground/50 uppercase">Select size</p>
-            <div className="mt-5 grid grid-cols-5 gap-2">
+            <p id="size-label" className="text-[0.65rem] tracking-brand text-foreground/50 uppercase">Select size</p>
+            <div role="radiogroup" aria-labelledby="size-label" className="mt-5 grid grid-cols-5 gap-2">
               {sizes.map((s) => (
                 <button
                   key={s}
+                  role="radio"
+                  aria-checked={size === s}
                   onClick={() => setSize(s)}
-                  className={`border py-3 text-[0.75rem] tracking-wider-2 uppercase transition-colors ${
+                  className={`focus-luxe border py-3 text-[0.75rem] tracking-wider-2 uppercase transition-colors ${
                     size === s
                       ? "border-accent text-accent"
                       : "border-border text-foreground/70 hover:border-foreground/40"
