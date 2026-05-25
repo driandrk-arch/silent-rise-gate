@@ -542,7 +542,11 @@ function ReserveOverlay({
 
         <div className="border-t border-border/60 px-8 py-6">
           <a
-            href="https://silent-rise-2.myshopify.com/cart/49392246489430:1"
+            href={
+              product.name === "The Navy Polo"
+                ? "https://silent-rise-2.myshopify.com/products/mens-dress-wear-example-product-3"
+                : "https://silent-rise-2.myshopify.com/products/short-t-shirt"
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="btn-luxe btn-solid w-full text-center"
