@@ -543,9 +543,11 @@ function ReserveOverlay({
         <div className="border-t border-border/60 px-8 py-6">
           <a
             href={
-              product.name === "The Navy Polo"
-                ? "https://silent-rise-2.myshopify.com/products/mens-dress-wear-example-product-3"
-                : "https://silent-rise-2.myshopify.com/products/short-t-shirt"
+              size === "S" ? "https://silent-rise-2.myshopify.com/cart/53986821341526:1" :
+              size === "M" ? "https://silent-rise-2.myshopify.com/cart/53986821374294:1" :
+              size === "L" ? "https://silent-rise-2.myshopify.com/cart/53986821407062:1" :
+              size === "XL" ? "https://silent-rise-2.myshopify.com/cart/53986821439830:1" :
+              "https://silent-rise-2.myshopify.com/cart/53986821374294:1"
             }
             target="_blank"
             rel="noopener noreferrer"
