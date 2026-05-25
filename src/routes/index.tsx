@@ -541,7 +541,14 @@ function ReserveOverlay({
         </div>
 
         <div className="border-t border-border/60 px-8 py-6">
-          <button className="btn-luxe btn-solid w-full">Proceed to Secure Checkout</button>
+          <a
+            href="https://silent-rise-2.myshopify.com/products/mens-dress-wear-example-product-3"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-luxe btn-solid w-full text-center"
+          >
+            Proceed to Secure Checkout
+          </a>
           <p className="mt-4 text-center text-[0.6rem] tracking-brand text-foreground/40 uppercase">
             Stripe · Apple Pay · Wire
           </p>
