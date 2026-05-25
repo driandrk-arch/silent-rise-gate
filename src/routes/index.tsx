@@ -11,10 +11,29 @@ export const Route = createFileRoute("/")({
   component: SilentRisePage,
 });
 
+// Shopify variant IDs by size (Silent Rise / Navy Polo)
+const NAVY_VARIANTS: Record<string, string> = {
+  S:   "53986821341526",
+  M:   "53986821374294",
+  L:   "53986821407062",
+  XL:  "53986821439830",
+  XXL: "53986821439830", // use XL id until XXL is added in Shopify
+};
+
+// Emerald Polo – update these IDs once added in Shopify
+const EMERALD_VARIANTS: Record<string, string> = {
+  S:   "53986821341526",
+  M:   "53986821374294",
+  L:   "53986821407062",
+  XL:  "53986821439830",
+  XXL: "53986821439830",
+};
+
 type ReserveTarget = {
   name: string;
   color: string;
   image: string;
+  variants: Record<string, string>;
 } | null;
 
 function SilentRisePage() {
@@ -167,16 +186,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
           </p>
         </div>
 
-        <div className="mt-14 flex justify-center">
-          <a
-            href="https://silent-rise-2.myshopify.com/collections/all"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-luxe btn-solid"
-          >
-            Vásárlás
-          </a>
-        </div>
+        {/* A "Vásárlás" gomb TÖRÖLVE — a Reserve Piece gomb nyitja meg a panelt */}
 
         <div className="mt-32 grid gap-24 lg:grid-cols-2 lg:gap-16">
           <ProductCard
@@ -186,7 +196,8 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
             fit="Slim · Tailored"
             embroidery="Tonal Cloud Dancer SR Monogram, 3D Puff"
             image={productNavy}
-            url="https://silent-rise-2.myshopify.com/products/mens-dress-wear-example-product-3"
+            variants={NAVY_VARIANTS}
+            onReserve={onReserve}
           />
           <ProductCard
             number="II"
@@ -195,7 +206,8 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
             fit="Italian Placket · Tailored Sleeve"
             embroidery="Sand 3D Puff Monogram, Discrete"
             image={productEmerald}
-            url="https://silent-rise-2.myshopify.com/products/short-t-shirt"
+            variants={EMERALD_VARIANTS}
+            onReserve={onReserve}
           />
         </div>
       </div>
@@ -204,7 +216,7 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
 }
 
 function ProductCard({
-  number, name, color, fit, embroidery, image, url,
+  number, name, color, fit, embroidery, image, variants, onReserve,
 }: {
   number: string;
   name: string;
@@ -212,7 +224,8 @@ function ProductCard({
   fit: string;
   embroidery: string;
   image: string;
-  url: string;
+  variants: Record<string, string>;
+  onReserve: (p: ReserveTarget) => void;
 }) {
   return (
     <article className="group flex flex-col">
@@ -245,14 +258,13 @@ function ProductCard({
           <SpecRow k="Allocation" v="08 of 60 remaining" gold />
         </dl>
 
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
+        {/* Reserve Piece — megnyitja a méretválasztó panelt, NEM a Shopify termék oldalát */}
+        <button
+          onClick={() => onReserve({ name, color, image, variants })}
           className="btn-luxe mt-4 self-start"
         >
           Reserve Piece
-        </a>
+        </button>
       </div>
     </article>
   );
@@ -423,9 +435,12 @@ function ReserveOverlay({
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // Build the cart URL from the product's variant map
+  const variantId = product.variants[size] ?? product.variants["M"];
+  const checkoutUrl = `https://silent-rise-2.myshopify.com/cart/${variantId}:1`;
+
   useEffect(() => {
     previouslyFocused.current = document.activeElement as HTMLElement | null;
-    // Focus the close button on open
     closeBtnRef.current?.focus();
 
     const getFocusable = () => {
@@ -439,30 +454,17 @@ function ReserveOverlay({
     };
 
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        onClose();
-        return;
-      }
+      if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
       if (e.key === "Tab") {
         const focusable = getFocusable();
-        if (focusable.length === 0) {
-          e.preventDefault();
-          return;
-        }
+        if (focusable.length === 0) { e.preventDefault(); return; }
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
         const active = document.activeElement as HTMLElement | null;
         if (e.shiftKey) {
-          if (active === first || !panelRef.current?.contains(active)) {
-            e.preventDefault();
-            last.focus();
-          }
+          if (active === first || !panelRef.current?.contains(active)) { e.preventDefault(); last.focus(); }
         } else {
-          if (active === last) {
-            e.preventDefault();
-            first.focus();
-          }
+          if (active === last) { e.preventDefault(); first.focus(); }
         }
       }
     };
@@ -542,12 +544,7 @@ function ReserveOverlay({
 
         <div className="border-t border-border/60 px-8 py-6">
           <a
-            href={
-              size === "S" ? "https://silent-rise-2.myshopify.com/cart/53986821341526:1" :
-              size === "M" ? "https://silent-rise-2.myshopify.com/cart/53986821374294:1" :
-              size === "L" ? "https://silent-rise-2.myshopify.com/cart/53986821407062:1" :
-              "https://silent-rise-2.myshopify.com/cart/53986821439830:1"
-            }
+            href={checkoutUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-luxe btn-solid w-full text-center"
