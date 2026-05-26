@@ -11,16 +11,14 @@ export const Route = createFileRoute("/")({
   component: SilentRisePage,
 });
 
-// Shopify variant IDs by size (Silent Rise / Navy Polo)
 const NAVY_VARIANTS: Record<string, string> = {
   S:   "53986821341526",
   M:   "53986821374294",
   L:   "53986821407062",
   XL:  "53986821439830",
-  XXL: "53986821439830", // use XL id until XXL is added in Shopify
+  XXL: "53986821439830",
 };
 
-// Emerald Polo – update these IDs once added in Shopify
 const EMERALD_VARIANTS: Record<string, string> = {
   S:   "53986821341526",
   M:   "53986821374294",
@@ -36,12 +34,22 @@ type ReserveTarget = {
   variants: Record<string, string>;
 } | null;
 
+type CartItem = {
+  name: string;
+  size: string;
+  qty: number;
+  variantId: string;
+  image: string;
+};
+
 function SilentRisePage() {
   const [unlocked, setUnlocked] = useState(false);
   const [code, setCode] = useState("");
   const [hint, setHint] = useState<string | null>(null);
   const [reserve, setReserve] = useState<ReserveTarget>(null);
   const [size, setSize] = useState("M");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = unlocked ? "" : "hidden";
@@ -49,24 +57,47 @@ function SilentRisePage() {
   }, [unlocked]);
 
   useEffect(() => {
-    document.body.style.overflow = reserve ? "hidden" : unlocked ? "" : "hidden";
-  }, [reserve, unlocked]);
+    document.body.style.overflow = (reserve || cartOpen) ? "hidden" : unlocked ? "" : "hidden";
+  }, [reserve, unlocked, cartOpen]);
 
   const handleGate = (e: FormEvent) => {
     e.preventDefault();
-    if (code.trim().length >= 4) {
-      setUnlocked(true);
-    } else {
-      setHint("Your access code has not been recognised.");
-    }
+    if (code.trim().length >= 4) setUnlocked(true);
+    else setHint("Your access code has not been recognised.");
   };
+
+  const addToCart = (item: CartItem) => {
+    setCart(prev => {
+      const existing = prev.findIndex(i => i.variantId === item.variantId && i.size === item.size);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing].qty += item.qty;
+        return updated;
+      }
+      return [...prev, item];
+    });
+    setReserve(null);
+    setCartOpen(true);
+  };
+
+  const removeFromCart = (idx: number) => setCart(prev => prev.filter((_, i) => i !== idx));
+
+  const updateQty = (idx: number, qty: number) => {
+    if (qty < 1) return removeFromCart(idx);
+    setCart(prev => prev.map((item, i) => i === idx ? { ...item, qty } : item));
+  };
+
+  // Build Shopify cart URL from all items
+  const shopifyCartUrl = cart.length > 0
+    ? `https://silent-rise-2.myshopify.com/cart/${cart.map(i => `${i.variantId}:${i.qty}`).join(",")}`
+    : "#";
 
   return (
     <>
       {!unlocked && <Gate code={code} setCode={setCode} hint={hint} onSubmit={handleGate} />}
       {unlocked && (
         <main className="fade-in-slow">
-          <Header />
+          <Header cartCount={cart.reduce((s, i) => s + i.qty, 0)} onCartOpen={() => setCartOpen(true)} />
           <ProductShowcase onReserve={setReserve} />
           <BentoGrid />
           <SpecsSection />
@@ -79,6 +110,16 @@ function SilentRisePage() {
           size={size}
           setSize={setSize}
           onClose={() => setReserve(null)}
+          onAddToCart={addToCart}
+        />
+      )}
+      {cartOpen && (
+        <CartOverlay
+          cart={cart}
+          shopifyCartUrl={shopifyCartUrl}
+          onClose={() => setCartOpen(false)}
+          onRemove={removeFromCart}
+          onUpdateQty={updateQty}
         />
       )}
     </>
@@ -86,66 +127,32 @@ function SilentRisePage() {
 }
 
 /* ---------- Gate ---------- */
-function Gate({
-  code, setCode, hint, onSubmit,
-}: {
-  code: string;
-  setCode: (v: string) => void;
-  hint: string | null;
-  onSubmit: (e: FormEvent) => void;
+function Gate({ code, setCode, hint, onSubmit }: {
+  code: string; setCode: (v: string) => void; hint: string | null; onSubmit: (e: FormEvent) => void;
 }) {
   return (
     <section className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-background">
       <div className="absolute inset-0 vignette">
-        <img
-          src={heroSilhouette}
-          alt=""
-          width={1920}
-          height={1280}
+        <img src={heroSilhouette} alt="" width={1920} height={1280}
           className="h-full w-full object-cover opacity-70"
-          style={{ animation: "fadeIn 3s ease-out both, gateZoom 24s ease-in-out infinite alternate" }}
-        />
+          style={{ animation: "fadeIn 3s ease-out both, gateZoom 24s ease-in-out infinite alternate" }} />
       </div>
       <style>{`@keyframes gateZoom { from { transform: scale(1.02); } to { transform: scale(1.12); } }`}</style>
-
       <div className="relative z-10 flex w-full max-w-xl flex-col items-center px-6 text-center">
         <p className="rise-in text-[0.65rem] tracking-brand text-foreground/60 uppercase">MMXXV — Allocation I</p>
-        <h1
-          className="rise-in mt-10 font-serif text-5xl font-light text-foreground sm:text-6xl"
-          style={{ letterSpacing: "0.15em", animationDelay: "120ms" }}
-        >
+        <h1 className="rise-in mt-10 font-serif text-5xl font-light text-foreground sm:text-6xl" style={{ letterSpacing: "0.15em", animationDelay: "120ms" }}>
           SILENT&nbsp;RISE
         </h1>
         <div className="rise-in gold-line mt-10" style={{ animationDelay: "260ms" }} />
-        <p
-          className="rise-in mt-10 max-w-md text-sm leading-relaxed text-foreground/65"
-          style={{ animationDelay: "380ms" }}
-        >
-          An aligned circle of individuals.
-          <br />
-          Enter your access code to proceed.
+        <p className="rise-in mt-10 max-w-md text-sm leading-relaxed text-foreground/65" style={{ animationDelay: "380ms" }}>
+          An aligned circle of individuals.<br />Enter your access code to proceed.
         </p>
-
-        <form
-          onSubmit={onSubmit}
-          className="rise-in mt-14 flex w-full max-w-sm flex-col items-center gap-6"
-          style={{ animationDelay: "520ms" }}
-        >
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Enter Code"
-            aria-label="Access code"
-            className="input-luxe w-full px-4 py-4 text-center text-sm tracking-wider-2"
-          />
-          <button type="submit" className="btn-luxe w-full">
-            Request Allocation
-          </button>
-          {hint && (
-            <p className="text-[0.7rem] tracking-wider-2 uppercase text-accent">{hint}</p>
-          )}
+        <form onSubmit={onSubmit} className="rise-in mt-14 flex w-full max-w-sm flex-col items-center gap-6" style={{ animationDelay: "520ms" }}>
+          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter Code" aria-label="Access code"
+            className="input-luxe w-full px-4 py-4 text-center text-sm tracking-wider-2" />
+          <button type="submit" className="btn-luxe w-full">Request Allocation</button>
+          {hint && <p className="text-[0.7rem] tracking-wider-2 uppercase text-accent">{hint}</p>}
         </form>
-
         <p className="fade-in mt-20 text-[0.6rem] tracking-brand text-foreground/35 uppercase" style={{ animationDelay: "800ms" }}>
           By invitation only · Private release
         </p>
@@ -155,15 +162,20 @@ function Gate({
 }
 
 /* ---------- Header ---------- */
-function Header() {
+function Header({ cartCount, onCartOpen }: { cartCount: number; onCartOpen: () => void }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1600px] items-center justify-between px-8 py-6 sm:px-14">
         <span className="text-[0.7rem] tracking-brand text-foreground/60 uppercase">Member · 0142</span>
-        <a href="#top" className="font-serif text-base tracking-brand text-foreground" style={{ letterSpacing: "0.32em" }}>
-          SILENT RISE
-        </a>
-        <span className="text-[0.7rem] tracking-brand text-accent uppercase">Allocation Active</span>
+        <a href="#top" className="font-serif text-base tracking-brand text-foreground" style={{ letterSpacing: "0.32em" }}>SILENT RISE</a>
+        <button onClick={onCartOpen} className="flex items-center gap-2 text-[0.7rem] tracking-brand text-accent uppercase">
+          Basket
+          {cartCount > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[0.6rem] text-background font-medium">
+              {cartCount}
+            </span>
+          )}
+        </button>
       </div>
     </header>
   );
@@ -177,92 +189,49 @@ function ProductShowcase({ onReserve }: { onReserve: (p: ReserveTarget) => void 
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-[0.65rem] tracking-brand text-accent uppercase">The Inaugural Releases</p>
           <h2 className="mt-8 font-serif text-4xl font-light text-foreground sm:text-6xl" style={{ letterSpacing: "0.04em" }}>
-            Two pieces.<br />
-            <span className="italic text-foreground/80">One philosophy.</span>
+            Two pieces.<br /><span className="italic text-foreground/80">One philosophy.</span>
           </h2>
           <div className="gold-line mx-auto mt-10" />
           <p className="mx-auto mt-10 max-w-lg text-sm leading-loose text-foreground/60">
             Constructed in restricted quantity. Numbered. Released without sequel.
           </p>
         </div>
-
-        {/* A "Vásárlás" gomb TÖRÖLVE — a Reserve Piece gomb nyitja meg a panelt */}
-
         <div className="mt-32 grid gap-24 lg:grid-cols-2 lg:gap-16">
-          <ProductCard
-            number="I"
-            name="The Navy Polo"
-            color="Deep Cruise Navy"
-            fit="Slim · Tailored"
-            embroidery="Tonal Cloud Dancer SR Monogram, 3D Puff"
-            image={productNavy}
-            variants={NAVY_VARIANTS}
-            onReserve={onReserve}
-          />
-          <ProductCard
-            number="II"
-            name="The Emerald Polo"
-            color="Harrods Bottle Green"
-            fit="Italian Placket · Tailored Sleeve"
-            embroidery="Sand 3D Puff Monogram, Discrete"
-            image={productEmerald}
-            variants={EMERALD_VARIANTS}
-            onReserve={onReserve}
-          />
+          <ProductCard number="I" name="The Navy Polo" color="Deep Cruise Navy" fit="Slim · Tailored"
+            embroidery="Tonal Cloud Dancer SR Monogram, 3D Puff" image={productNavy}
+            variants={NAVY_VARIANTS} onReserve={onReserve} />
+          <ProductCard number="II" name="The Emerald Polo" color="Harrods Bottle Green" fit="Italian Placket · Tailored Sleeve"
+            embroidery="Sand 3D Puff Monogram, Discrete" image={productEmerald}
+            variants={EMERALD_VARIANTS} onReserve={onReserve} />
         </div>
       </div>
     </section>
   );
 }
 
-function ProductCard({
-  number, name, color, fit, embroidery, image, variants, onReserve,
-}: {
-  number: string;
-  name: string;
-  color: string;
-  fit: string;
-  embroidery: string;
-  image: string;
-  variants: Record<string, string>;
-  onReserve: (p: ReserveTarget) => void;
+function ProductCard({ number, name, color, fit, embroidery, image, variants, onReserve }: {
+  number: string; name: string; color: string; fit: string; embroidery: string;
+  image: string; variants: Record<string, string>; onReserve: (p: ReserveTarget) => void;
 }) {
   return (
     <article className="group flex flex-col">
       <div className="relative overflow-hidden bg-card">
-        <img
-          src={image}
-          alt={name}
-          loading="lazy"
-          width={1080}
-          height={1440}
-          className="aspect-[3/4] w-full object-cover transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
-        />
-        <span className="absolute top-6 left-6 text-[0.65rem] tracking-brand text-foreground/80 uppercase">
-          № {number} / II
-        </span>
+        <img src={image} alt={name} loading="lazy" width={1080} height={1440}
+          className="aspect-[3/4] w-full object-cover transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]" />
+        <span className="absolute top-6 left-6 text-[0.65rem] tracking-brand text-foreground/80 uppercase">№ {number} / II</span>
       </div>
-
       <div className="mt-10 flex flex-col gap-6">
         <div className="flex items-baseline justify-between">
-          <h3 className="font-serif text-3xl font-light text-foreground" style={{ letterSpacing: "0.04em" }}>
-            {name}
-          </h3>
+          <h3 className="font-serif text-3xl font-light text-foreground" style={{ letterSpacing: "0.04em" }}>{name}</h3>
           <span className="text-[0.7rem] tracking-wider-2 text-foreground/50 uppercase">€ 480</span>
         </div>
-
         <dl className="grid grid-cols-1 gap-3 border-t border-border/60 pt-6 text-[0.72rem] tracking-wider-2 uppercase">
           <SpecRow k="Colour" v={color} />
           <SpecRow k="Fit" v={fit} />
           <SpecRow k="Embroidery" v={embroidery} />
           <SpecRow k="Allocation" v="08 of 60 remaining" gold />
         </dl>
-
-        {/* Reserve Piece — megnyitja a méretválasztó panelt, NEM a Shopify termék oldalát */}
-        <button
-          onClick={() => onReserve({ name, color, image, variants })}
-          className="btn-luxe mt-4 self-start"
-        >
+        <button onClick={() => onReserve({ name, color, image, variants })} className="btn-luxe mt-4 self-start">
           Reserve Piece
         </button>
       </div>
@@ -291,61 +260,32 @@ function BentoGrid() {
           </h2>
           <div className="gold-line mx-auto mt-10" />
         </div>
-
         <div className="mt-24 grid gap-6 md:grid-cols-6 md:grid-rows-2">
-          <BentoCard
-            className="md:col-span-3 md:row-span-2"
-            image={detailFabric}
-            eyebrow="01 — The Substance"
-            title="215 GSM Combed Cotton"
-            body="A heavy, dense piqué knit engineered to hold its silhouette, move with absolute comfort, and promise a lifetime of structural integrity."
-            tall
-          />
-          <BentoCard
-            className="md:col-span-3"
-            image={detailHardware}
-            eyebrow="02 — The Hardware"
-            title="The Signature Plate"
-            body="A laser-etched, rigid carbon fibre plate secured by dual gunmetal rivets. High-tech engineering meeting traditional couture."
-          />
-          <BentoCard
-            className="md:col-span-3"
-            image={detailBox}
-            eyebrow="03 — The Ritual"
-            title="The Presentation"
-            body="Delivered in a heavy-duty matte black magnetic-closure box. Wrapped in black tissue. Verified by an individually numbered Certificate of Authenticity."
-          />
+          <BentoCard className="md:col-span-3 md:row-span-2" image={detailFabric}
+            eyebrow="01 — The Substance" title="215 GSM Combed Cotton"
+            body="A heavy, dense piqué knit engineered to hold its silhouette, move with absolute comfort, and promise a lifetime of structural integrity." tall />
+          <BentoCard className="md:col-span-3" image={detailHardware}
+            eyebrow="02 — The Hardware" title="The Signature Plate"
+            body="A laser-etched, rigid carbon fibre plate secured by dual gunmetal rivets. High-tech engineering meeting traditional couture." />
+          <BentoCard className="md:col-span-3" image={detailBox}
+            eyebrow="03 — The Ritual" title="The Presentation"
+            body="Delivered in a heavy-duty matte black magnetic-closure box. Wrapped in black tissue. Verified by an individually numbered Certificate of Authenticity." />
         </div>
       </div>
     </section>
   );
 }
 
-function BentoCard({
-  className = "", image, eyebrow, title, body, tall = false,
-}: {
-  className?: string;
-  image: string;
-  eyebrow: string;
-  title: string;
-  body: string;
-  tall?: boolean;
+function BentoCard({ className = "", image, eyebrow, title, body, tall = false }: {
+  className?: string; image: string; eyebrow: string; title: string; body: string; tall?: boolean;
 }) {
   return (
     <article className={`group relative overflow-hidden bg-background ${className}`}>
-      <img
-        src={image}
-        alt=""
-        loading="lazy"
-        width={1280}
-        height={tall ? 1600 : 800}
-        className={`w-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105 ${tall ? "h-full min-h-[520px]" : "h-72 sm:h-80"}`}
-      />
+      <img src={image} alt="" loading="lazy" width={1280} height={tall ? 1600 : 800}
+        className={`w-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105 ${tall ? "h-full min-h-[520px]" : "h-72 sm:h-80"}`} />
       <div className="absolute inset-x-0 bottom-0 scrim p-8 sm:p-10">
         <p className="text-[0.65rem] tracking-brand text-accent uppercase">{eyebrow}</p>
-        <h3 className="mt-4 font-serif text-2xl font-light text-foreground sm:text-3xl" style={{ letterSpacing: "0.04em" }}>
-          {title}
-        </h3>
+        <h3 className="mt-4 font-serif text-2xl font-light text-foreground sm:text-3xl" style={{ letterSpacing: "0.04em" }}>{title}</h3>
         <p className="mt-4 max-w-md text-[0.78rem] leading-relaxed text-foreground/65">{body}</p>
       </div>
     </article>
@@ -364,31 +304,19 @@ function SpecsSection() {
     ["Origin", "Cut & sewn in Northern Italy"],
     ["Allocation", "Numbered, 60 pieces per colourway"],
   ];
-
   return (
     <section className="px-6 py-32 sm:px-14 sm:py-44">
       <div className="mx-auto grid max-w-[1400px] gap-20 lg:grid-cols-[1fr_1.2fr] lg:gap-32">
         <div>
           <p className="text-[0.65rem] tracking-brand text-accent uppercase">Specifications</p>
           <h2 className="mt-8 font-serif text-4xl font-light leading-tight text-foreground sm:text-5xl" style={{ letterSpacing: "0.04em" }}>
-            Every choice<br />
-            <span className="italic text-foreground/80">considered.</span>
+            Every choice<br /><span className="italic text-foreground/80">considered.</span>
           </h2>
           <div className="gold-line mt-10" />
           <p className="mt-10 max-w-md text-sm leading-loose text-foreground/60">
             No detail is incidental. Each component is selected with the intention of permanence.
           </p>
-
-          <a
-            href="https://silent-rise-2.myshopify.com/collections/all"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-luxe btn-solid mt-14 inline-block"
-          >
-            Request Allocation
-          </a>
         </div>
-
         <dl className="divide-y divide-border/60">
           {specs.map(([k, v]) => (
             <div key={k} className="grid grid-cols-[1fr_2fr] gap-6 py-6">
@@ -407,99 +335,47 @@ function Footer() {
   return (
     <footer className="border-t border-border/50 px-6 py-16 sm:px-14">
       <div className="mx-auto flex max-w-[1600px] flex-col items-center gap-8 text-center sm:flex-row sm:justify-between sm:text-left">
-        <p className="font-serif text-lg tracking-brand text-foreground/80" style={{ letterSpacing: "0.32em" }}>
-          SILENT RISE
-        </p>
-        <p className="text-[0.65rem] tracking-brand text-foreground/40 uppercase">
-          Allocation MMXXV · Numbered Release · Northern Italy
-        </p>
-        <p className="text-[0.65rem] tracking-brand text-foreground/40 uppercase">
-          Atelier · Concierge · Press
-        </p>
+        <p className="font-serif text-lg tracking-brand text-foreground/80" style={{ letterSpacing: "0.32em" }}>SILENT RISE</p>
+        <p className="text-[0.65rem] tracking-brand text-foreground/40 uppercase">Allocation MMXXV · Numbered Release · Northern Italy</p>
+        <p className="text-[0.65rem] tracking-brand text-foreground/40 uppercase">Atelier · Concierge · Press</p>
       </div>
     </footer>
   );
 }
 
 /* ---------- Reserve Overlay ---------- */
-function ReserveOverlay({
-  product, size, setSize, onClose,
-}: {
-  product: NonNullable<ReserveTarget>;
-  size: string;
-  setSize: (s: string) => void;
-  onClose: () => void;
+function ReserveOverlay({ product, size, setSize, onClose, onAddToCart }: {
+  product: NonNullable<ReserveTarget>; size: string; setSize: (s: string) => void;
+  onClose: () => void; onAddToCart: (item: CartItem) => void;
 }) {
   const sizes = ["S", "M", "L", "XL", "XXL"];
+  const [qty, setQty] = useState(1);
   const panelRef = useRef<HTMLElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
-  // Build the cart URL from the product's variant map
   const variantId = product.variants[size] ?? product.variants["M"];
-  const checkoutUrl = `https://silent-rise-2.myshopify.com/cart/${variantId}:1`;
 
   useEffect(() => {
     previouslyFocused.current = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus();
-
-    const getFocusable = () => {
-      const panel = panelRef.current;
-      if (!panel) return [] as HTMLElement[];
-      return Array.from(
-        panel.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      ).filter((el) => !el.hasAttribute("aria-hidden"));
-    };
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.preventDefault(); onClose(); return; }
-      if (e.key === "Tab") {
-        const focusable = getFocusable();
-        if (focusable.length === 0) { e.preventDefault(); return; }
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        const active = document.activeElement as HTMLElement | null;
-        if (e.shiftKey) {
-          if (active === first || !panelRef.current?.contains(active)) { e.preventDefault(); last.focus(); }
-        } else {
-          if (active === last) { e.preventDefault(); first.focus(); }
-        }
-      }
-    };
-
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); onClose(); } };
     document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      previouslyFocused.current?.focus?.();
-    };
+    return () => { document.removeEventListener("keydown", handleKey); previouslyFocused.current?.focus?.(); };
   }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-labelledby="reserve-title">
-      <button
-        onClick={onClose}
-        aria-label="Close reservation"
-        tabIndex={-1}
-        className="absolute inset-0 bg-obsidian/70 backdrop-blur-sm"
-        style={{ animation: "fadeIn 400ms ease-out both" }}
-      />
-      <aside
-        ref={panelRef}
-        className="relative z-10 flex h-full w-full max-w-md flex-col bg-card text-foreground"
-        style={{ animation: "slideIn 600ms cubic-bezier(0.16,1,0.3,1) both" }}
-      >
+      <button onClick={onClose} aria-label="Close reservation" tabIndex={-1}
+        className="absolute inset-0 bg-obsidian/70 backdrop-blur-sm" style={{ animation: "fadeIn 400ms ease-out both" }} />
+      <aside ref={panelRef} className="relative z-10 flex h-full w-full max-w-md flex-col bg-card text-foreground"
+        style={{ animation: "slideIn 600ms cubic-bezier(0.16,1,0.3,1) both" }}>
         <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
 
         <div className="flex items-center justify-between border-b border-border/60 px-8 py-6">
           <p className="text-[0.65rem] tracking-brand text-accent uppercase">Reservation</p>
-          <button
-            ref={closeBtnRef}
-            onClick={onClose}
-            aria-label="Close reservation (Esc)"
-            className="focus-luxe rounded-sm px-1 text-[0.65rem] tracking-brand text-foreground/60 uppercase transition-colors hover:text-accent"
-          >
+          <button ref={closeBtnRef} onClick={onClose} aria-label="Close reservation (Esc)"
+            className="focus-luxe rounded-sm px-1 text-[0.65rem] tracking-brand text-foreground/60 uppercase transition-colors hover:text-accent">
             Close
           </button>
         </div>
@@ -512,49 +388,151 @@ function ReserveOverlay({
             <p className="mt-6 text-[0.7rem] tracking-brand text-accent uppercase">€ 480 · Numbered Piece</p>
           </div>
 
+          {/* Size selector */}
           <div className="mt-10">
-            <p id="size-label" className="text-[0.65rem] tracking-brand text-foreground/50 uppercase">Select size</p>
+            <p id="size-label" className="text-[0.65rem] tracking-brand text-foreground/50 uppercase">
+              Select size — <span className="text-accent">{size} selected</span>
+            </p>
             <div role="radiogroup" aria-labelledby="size-label" className="mt-5 grid grid-cols-5 gap-2">
               {sizes.map((s) => (
-                <button
-                  key={s}
-                  role="radio"
-                  aria-checked={size === s}
-                  onClick={() => setSize(s)}
+                <button key={s} role="radio" aria-checked={size === s} onClick={() => setSize(s)}
                   className={`focus-luxe border py-3 text-[0.75rem] tracking-wider-2 uppercase transition-colors ${
-                    size === s
-                      ? "border-accent text-accent"
-                      : "border-border text-foreground/70 hover:border-foreground/40"
-                  }`}
-                >
+                    size === s ? "border-accent text-accent" : "border-border text-foreground/70 hover:border-foreground/40"
+                  }`}>
                   {s}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="hairline mt-12" />
+          {/* Quantity selector */}
+          <div className="mt-8">
+            <p className="text-[0.65rem] tracking-brand text-foreground/50 uppercase mb-4">Quantity</p>
+            <div className="flex items-center gap-4">
+              <button onClick={() => setQty(q => Math.max(1, q - 1))}
+                className="flex h-10 w-10 items-center justify-center border border-border text-foreground/70 hover:border-foreground/40 transition-colors text-lg">
+                −
+              </button>
+              <span className="font-serif text-2xl font-light text-foreground w-8 text-center">{qty}</span>
+              <button onClick={() => setQty(q => Math.min(5, q + 1))}
+                className="flex h-10 w-10 items-center justify-center border border-border text-foreground/70 hover:border-foreground/40 transition-colors text-lg">
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="hairline mt-10" />
 
           <ul className="mt-8 space-y-3 text-[0.7rem] tracking-wider-2 text-foreground/55 uppercase">
+            <li className="flex justify-between"><span>Size</span><span className="text-accent font-medium">{size}</span></li>
+            <li className="flex justify-between"><span>Quantity</span><span className="text-foreground/85">{qty} piece{qty > 1 ? "s" : ""}</span></li>
+            <li className="flex justify-between"><span>Total</span><span className="text-foreground/85">€ {480 * qty}</span></li>
             <li className="flex justify-between"><span>Edition</span><span className="text-foreground/85">№ 53 / 60</span></li>
             <li className="flex justify-between"><span>Despatch</span><span className="text-foreground/85">7 — 10 days</span></li>
             <li className="flex justify-between"><span>Presentation</span><span className="text-foreground/85">Magnetic rigid box</span></li>
           </ul>
         </div>
 
-        <div className="border-t border-border/60 px-8 py-6">
+        <div className="border-t border-border/60 px-8 py-6 flex flex-col gap-3">
+          {/* Add to basket — stays on page */}
+          <button
+            onClick={() => onAddToCart({ name: product.name, size, qty, variantId, image: product.image })}
+            className="btn-luxe w-full text-center"
+          >
+            Add to Basket — {size} · {qty} pc
+          </button>
+          {/* Direct checkout */}
           <a
-            href={checkoutUrl}
+            href={`https://silent-rise-2.myshopify.com/cart/${variantId}:${qty}`}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-luxe btn-solid w-full text-center"
           >
             Proceed to Secure Checkout
           </a>
-          <p className="mt-4 text-center text-[0.6rem] tracking-brand text-foreground/40 uppercase">
+          <p className="mt-2 text-center text-[0.6rem] tracking-brand text-foreground/40 uppercase">
             Stripe · Apple Pay · Wire
           </p>
         </div>
+      </aside>
+    </div>
+  );
+}
+
+/* ---------- Cart Overlay ---------- */
+function CartOverlay({ cart, shopifyCartUrl, onClose, onRemove, onUpdateQty }: {
+  cart: CartItem[]; shopifyCartUrl: string;
+  onClose: () => void; onRemove: (i: number) => void; onUpdateQty: (i: number, qty: number) => void;
+}) {
+  const total = cart.reduce((s, i) => s + 480 * i.qty, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
+      <button onClick={onClose} aria-label="Close cart" tabIndex={-1}
+        className="absolute inset-0 bg-obsidian/70 backdrop-blur-sm" />
+      <aside className="relative z-10 flex h-full w-full max-w-md flex-col bg-card text-foreground"
+        style={{ animation: "slideIn 600ms cubic-bezier(0.16,1,0.3,1) both" }}>
+        <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+
+        <div className="flex items-center justify-between border-b border-border/60 px-8 py-6">
+          <p className="text-[0.65rem] tracking-brand text-accent uppercase">
+            Basket · {cart.reduce((s, i) => s + i.qty, 0)} item{cart.reduce((s, i) => s + i.qty, 0) !== 1 ? "s" : ""}
+          </p>
+          <button onClick={onClose}
+            className="focus-luxe rounded-sm px-1 text-[0.65rem] tracking-brand text-foreground/60 uppercase transition-colors hover:text-accent">
+            Close
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-8 py-8">
+          {cart.length === 0 ? (
+            <p className="mt-20 text-center font-serif text-lg font-light italic text-foreground/40">Your basket is empty.</p>
+          ) : (
+            <ul className="space-y-8">
+              {cart.map((item, idx) => (
+                <li key={idx} className="flex gap-4 border-b border-border/40 pb-8">
+                  <img src={item.image} alt={item.name} className="h-24 w-20 object-cover flex-shrink-0" />
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div>
+                      <p className="font-serif text-lg font-light">{item.name}</p>
+                      <p className="mt-1 text-[0.65rem] tracking-wider-2 text-accent uppercase">Size: {item.size}</p>
+                      <p className="mt-1 text-[0.65rem] tracking-wider-2 text-foreground/50 uppercase">€ {480 * item.qty}</p>
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => onUpdateQty(idx, item.qty - 1)}
+                          className="flex h-7 w-7 items-center justify-center border border-border text-foreground/60 hover:border-foreground/40 text-sm">−</button>
+                        <span className="text-sm text-foreground">{item.qty}</span>
+                        <button onClick={() => onUpdateQty(idx, item.qty + 1)}
+                          className="flex h-7 w-7 items-center justify-center border border-border text-foreground/60 hover:border-foreground/40 text-sm">+</button>
+                      </div>
+                      <button onClick={() => onRemove(idx)}
+                        className="text-[0.65rem] tracking-wider-2 text-foreground/30 uppercase hover:text-foreground/60 transition-colors">
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {cart.length > 0 && (
+          <div className="border-t border-border/60 px-8 py-6">
+            <div className="flex justify-between mb-6">
+              <span className="text-[0.7rem] tracking-brand text-foreground/50 uppercase">Total</span>
+              <span className="font-serif text-2xl font-light text-foreground">€ {total}</span>
+            </div>
+            <a href={shopifyCartUrl} target="_blank" rel="noopener noreferrer"
+              className="btn-luxe btn-solid w-full text-center block">
+              Proceed to Secure Checkout
+            </a>
+            <p className="mt-4 text-center text-[0.6rem] tracking-brand text-foreground/40 uppercase">
+              Stripe · Apple Pay · Wire
+            </p>
+          </div>
+        )}
       </aside>
     </div>
   );
