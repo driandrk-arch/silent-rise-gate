@@ -20,11 +20,11 @@ const NAVY_VARIANTS: Record<string, string> = {
 };
 
 const EMERALD_VARIANTS: Record<string, string> = {
-  S:   "53986821341526",
-  M:   "53986821374294",
-  L:   "53986821407062",
-  XL:  "53986821439830",
-  XXL: "53986821439830",
+  S:   "53991091470678",
+  M:   "53991091503446",
+  L:   "53991091536214",
+  XL:  "53991091568982",
+  XXL: "53991091568982",
 };
 
 type ReserveTarget = {
